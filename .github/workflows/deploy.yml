@@ -70,6 +70,11 @@ jobs:
         run: echo 'learnlt.verko.lt' > frontend/dist/CNAME
 
       - uses: actions/configure-pages@v5
+        with:
+          # Creates the Pages site on the first run, using this workflow's own
+          # token (which has pages: write above). Without it the first deploy
+          # fails with "Not Found" until someone enables Pages by hand.
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
