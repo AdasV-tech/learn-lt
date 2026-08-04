@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"
+    />
+    <meta name="theme-color" content="#0d1712" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kalba" />
+
+    <title>Kalba — Military Lithuanian, free forever</title>
+    <meta
+      name="description"
+      content="Learn Military Lithuanian free, forever. Commands, drill, land navigation, radio procedure and casualty care — no paywalls, no ads, open source."
+    />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <meta property="og:title" content="Kalba — Military Lithuanian" />
+    <meta
+      property="og:description"
+      content="Free, open-source Military Lithuanian for soldiers and NATO personnel."
+    />
+    <meta property="og:type" content="website" />
+
+    <script>
+      // Apply the saved theme before first paint so the app never flashes white.
+      (function () {
+        try {
+          var saved = localStorage.getItem('kalba:theme') || 'dark';
+          var dark =
+            saved === 'dark' ||
+            (saved === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          if (localStorage.getItem('kalba:largeText') === 'true') {
+            document.documentElement.classList.add('large-text');
+          }
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; font-family: system-ui">
+        Kalba needs JavaScript to run. Everything is free and open source —
+        see the source at github.com.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

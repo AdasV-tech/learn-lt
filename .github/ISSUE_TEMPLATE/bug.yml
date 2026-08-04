@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in the app is broken.
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the lesson “Kontakto šauksmai”
+        2. Answer the third exercise
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Lesson player
+        - Review deck / flashcards
+        - Dictionary
+        - Grammar reference
+        - Kalba AI tutor
+        - Profile, achievements or leaderboard
+        - Sign-in / account
+        - Audio or speech recognition
+        - Installing as an app (PWA)
+        - Somewhere else
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      placeholder: 'Chrome 131 on Android 14 / Safari on iPhone 15'
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: console
+    attributes:
+      label: Console
+      options:
+        - label: I checked the browser console and pasted any errors above

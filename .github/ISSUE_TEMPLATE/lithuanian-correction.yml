@@ -1,0 +1,60 @@
+name: Lithuanian correction
+description: Report a mistake in the Lithuanian — a wrong form, a bad translation, an unnatural phrase.
+title: '[LT] '
+labels: ['content', 'lithuanian']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you — this is the most valuable kind of report Kalba can get.
+        Language accuracy is the one thing the project will not compromise on.
+
+  - type: input
+    id: entry
+    attributes:
+      label: The word, phrase or sentence
+      description: Exactly as it appears in the app.
+      placeholder: 'Stoti!'
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Where you saw it
+      description: Lesson name, dictionary, grammar page, or the AI tutor.
+      placeholder: 'Lesson “Judėjimo komandos”'
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: Wrong case? Wrong aspect? Infinitive where an imperative belongs? Just unnatural?
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: What it should be
+      description: Give the corrected Lithuanian and an English translation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source or authority
+      description: >
+        A dictionary entry, a doctrinal publication, or your own background — e.g.
+        "native speaker", "served in the Lithuanian Armed Forces", "VLKK ruling".
+        Not required, but it helps a lot.
+
+  - type: checkboxes
+    id: register
+    attributes:
+      label: Register
+      options:
+        - label: This is specifically about military usage rather than general Lithuanian

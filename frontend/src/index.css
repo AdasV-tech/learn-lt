@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --app-bg: theme('colors.base.950');
+    --app-surface: theme('colors.base.900');
+    --app-raised: theme('colors.base.800');
+    --app-border: theme('colors.base.700');
+    --app-text: theme('colors.base.50');
+    --app-muted: theme('colors.base.300');
+    --font-scale: 1;
+  }
+
+  [data-theme='light'] {
+    --app-bg: #f7f9f7;
+    --app-surface: #ffffff;
+    --app-raised: #eef2ee;
+    --app-border: #d6e0d8;
+    --app-text: #12211a;
+    --app-muted: #4c6154;
+  }
+
+  /* Large-text mode: everything scales together rather than one font growing. */
+  html.large-text {
+    --font-scale: 1.18;
+  }
+
+  html {
+    font-size: calc(100% * var(--font-scale));
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    /* Respect the notch and the home indicator on phones. */
+    padding-top: env(safe-area-inset-top);
+    overscroll-behavior-y: none;
+    min-height: 100dvh;
+  }
+
+  /* A visible, consistent focus ring for keyboard users on every control. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-signal ring-offset-2;
+    ring-offset-color: var(--app-bg);
+  }
+
+  ::selection {
+    background-color: theme('colors.signal.DEFAULT');
+    color: theme('colors.base.950');
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  html.reduced-motion *,
+  html.reduced-motion *::before,
+  html.reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .surface {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+  }
+
+  .raised {
+    background-color: var(--app-raised);
+    border-color: var(--app-border);
+  }
+
+  .muted {
+    color: var(--app-muted);
+  }
+
+  /* Content rendered from Markdown grammar pages. */
+  .prose-kalba {
+    @apply text-[0.95rem] leading-relaxed;
+    color: var(--app-text);
+  }
+  .prose-kalba h2 {
+    @apply mb-2 mt-6 text-lg font-bold;
+  }
+  .prose-kalba h3 {
+    @apply mb-2 mt-5 text-base font-semibold;
+  }
+  .prose-kalba p {
+    @apply mb-3;
+  }
+  .prose-kalba ul {
+    @apply mb-3 list-disc space-y-1 pl-5;
+  }
+  .prose-kalba ol {
+    @apply mb-3 list-decimal space-y-1 pl-5;
+  }
+  .prose-kalba strong {
+    @apply font-semibold text-signal;
+  }
+  .prose-kalba em {
+    @apply italic;
+    color: var(--app-muted);
+  }
+  .prose-kalba code {
+    @apply raised rounded px-1.5 py-0.5 font-mono text-[0.85em];
+  }
+  .prose-kalba blockquote {
+    @apply my-3 rounded-r-lg border-l-4 border-signal/60 py-2 pl-4;
+    background-color: var(--app-raised);
+  }
+  .prose-kalba table {
+    @apply my-4 w-full border-collapse overflow-hidden rounded-lg text-sm;
+  }
+  .prose-kalba th {
+    @apply raised border px-3 py-2 text-left font-semibold;
+  }
+  .prose-kalba td {
+    @apply border px-3 py-2 align-top;
+    border-color: var(--app-border);
+  }
+
+  .table-wrap {
+    @apply -mx-1 overflow-x-auto px-1;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
+
+  .tap {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

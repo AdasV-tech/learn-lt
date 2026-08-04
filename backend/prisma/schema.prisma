@@ -1,0 +1,284 @@
+// Kalba — database schema
+//
+// The content tables (Word, Unit, Lesson, GrammarPage, Achievement) are owned by
+// the seeder: they are rebuilt from @kalba/content on every `db:seed`, so the
+// curriculum lives in version-controlled TypeScript, not in the database.
+//
+// The user tables are the source of truth for everything a learner earns.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Level {
+  MIL1
+  MIL2
+  MIL3
+  MIL4
+  MIL5
+  MIL6
+}
+
+enum AchievementTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum Theme {
+  system
+  light
+  dark
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content — regenerated from @kalba/content by prisma/seed.ts
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Word {
+  id       String  @id @default(cuid())
+  lt       String  @unique
+  en       String
+  pron     String
+  pos      String
+  level    Level
+  category String
+  gender   String?
+  emoji    String?
+  grammar  String?
+  usage    String?
+  /// [{ lt, en }]
+  examples Json    @default("[]")
+  tags     String[] @default([])
+  alt      String[] @default([])
+
+  lessons    LessonWord[]
+  flashcards Flashcard[]
+
+  @@index([level])
+  @@index([category])
+}
+
+model Unit {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String
+  emoji       String
+  level       Level
+  color       String
+  order       Int
+
+  lessons Lesson[]
+
+  @@index([level, order])
+}
+
+model Lesson {
+  id       String @id @default(cuid())
+  slug     String @unique
+  unitId   String
+  title    String
+  subtitle String
+  emoji    String
+  order    Int
+  xp       Int    @default(10)
+
+  grammarTitle String?
+  grammarBody  String?
+
+  /// Exercise[] as produced by buildLesson() in @kalba/content.
+  exercises Json
+
+  unit     Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  words    LessonWord[]
+  progress LessonProgress[]
+  attempts ExerciseAttempt[]
+
+  @@index([unitId, order])
+}
+
+model LessonWord {
+  lessonId String
+  wordId   String
+  order    Int
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, wordId])
+  @@index([wordId])
+}
+
+model GrammarPage {
+  id      String @id @default(cuid())
+  slug    String @unique
+  title   String
+  level   Level
+  summary String
+  body    String
+  order   Int
+
+  @@index([order])
+}
+
+model Achievement {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  title       String
+  description String
+  emoji       String
+  metric      String
+  threshold   Int
+  xpReward    Int
+  tier        AchievementTier
+
+  unlocked UserAchievement[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Users & progress
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String?
+  googleId     String? @unique
+  displayName  String
+  avatarEmoji  String  @default("🪖")
+
+  xp            Int       @default(0)
+  streak        Int       @default(0)
+  longestStreak Int       @default(0)
+  /// Date-only (UTC) of the last day the learner earned XP.
+  lastActiveOn  DateTime? @db.Date
+
+  dailyGoalXp Int    @default(50)
+  timezone    String @default("UTC")
+
+  // Accessibility preferences, persisted so they follow the user across devices.
+  theme          Theme   @default(system)
+  largeText      Boolean @default(false)
+  reducedMotion  Boolean @default(false)
+  ttsRate        Float   @default(0.9)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  progress      LessonProgress[]
+  attempts      ExerciseAttempt[]
+  flashcards    Flashcard[]
+  achievements  UserAchievement[]
+  activity      DailyActivity[]
+
+  @@index([xp])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LessonProgress {
+  id             String    @id @default(cuid())
+  userId         String
+  lessonId       String
+  completions    Int       @default(0)
+  bestAccuracy   Int       @default(0)
+  lastAccuracy   Int       @default(0)
+  xpEarned       Int       @default(0)
+  perfectRuns    Int       @default(0)
+  firstCompleted DateTime?
+  lastCompleted  DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model ExerciseAttempt {
+  id           String   @id @default(cuid())
+  userId       String
+  lessonId     String?
+  exerciseType String
+  correct      Boolean
+  timeMs       Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, exerciseType])
+}
+
+/// One SM-2 spaced-repetition card per user per word.
+model Flashcard {
+  id             String   @id @default(cuid())
+  userId         String
+  wordId         String
+  /// SM-2 ease factor, floor 1.3.
+  ease           Float    @default(2.5)
+  intervalDays   Int      @default(0)
+  repetitions    Int      @default(0)
+  lapses         Int      @default(0)
+  dueAt          DateTime @default(now())
+  lastReviewedAt DateTime?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId])
+  @@index([userId, dueAt])
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@index([userId])
+}
+
+/// One row per user per day — powers the streak calendar and the daily goal ring.
+model DailyActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  day       DateTime @db.Date
+  xp        Int      @default(0)
+  lessons   Int      @default(0)
+  exercises Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([userId, day])
+}

@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── Fast feedback: formatting, lint, types, content integrity ─────────────
+  quality:
+    name: Lint, types & content
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the content package
+        run: npm run build --workspace @kalba/content
+
+      - name: Generate the Prisma client
+        run: npm run db:generate
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck every workspace
+        run: npm run typecheck
+
+      # The curriculum is data, so it gets its own integrity gate: unresolved
+      # word references, duplicate answers in a multiple-choice question, a word
+      # bank that can't spell its own sentence, non-Lithuanian letters.
+      - name: Validate the Lithuanian curriculum
+        run: npm run content:validate
+
+  # ── Content and pure-logic tests: no database needed ──────────────────────
+  test-content:
+    name: Content tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run test --workspace @kalba/content
+
+  # ── API tests against a real Postgres ─────────────────────────────────────
+  test-backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kalba
+          POSTGRES_PASSWORD: kalba
+          POSTGRES_DB: kalba_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kalba"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://kalba:kalba@localhost:5432/kalba_test?schema=public
+      JWT_ACCESS_SECRET: ci-access-secret-not-used-anywhere-real
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-used-anywhere-real
+      CORS_ORIGIN: http://localhost:5173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build content and generate the Prisma client
+        run: |
+          npm run build --workspace @kalba/content
+          npm run db:generate
+
+      - name: Apply the schema
+        run: npx prisma db push --skip-generate
+        working-directory: backend
+
+      - name: Seed the curriculum
+        run: npx tsx prisma/seed.ts
+        working-directory: backend
+
+      - name: Run API tests
+        run: npx vitest run
+        working-directory: backend
+
+  # ── Frontend component tests ──────────────────────────────────────────────
+  test-frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run test --workspace @kalba/frontend
+
+  # ── Production build ──────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build every workspace
+        run: npm run build
+
+      - name: Upload the frontend bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # ── One green check for branch protection ─────────────────────────────────
+  ci:
+    name: CI passed
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [quality, test-content, test-backend, test-frontend, build]
+    steps:
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "All checks passed."

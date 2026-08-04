@@ -1,0 +1,51 @@
+{
+  "name": "kalba",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kalba — a free, open-source, mobile-first app for learning Lithuanian from A1 to C1, including a dedicated Military Lithuanian track.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "database",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:backend dev:frontend",
+    "dev:backend": "npm run dev --workspace @kalba/backend",
+    "dev:frontend": "npm run dev --workspace @kalba/frontend",
+    "build": "npm run build --workspace @kalba/content && npm run build --workspace @kalba/backend && npm run build --workspace @kalba/frontend",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,yml,yaml}\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:generate": "npm run prisma:generate --workspace @kalba/backend",
+    "db:migrate": "npm run prisma:migrate --workspace @kalba/backend",
+    "db:push": "npm run prisma:push --workspace @kalba/backend",
+    "db:seed": "npm run prisma:seed --workspace @kalba/backend",
+    "db:studio": "npm run prisma:studio --workspace @kalba/backend",
+    "db:reset": "npm run prisma:reset --workspace @kalba/backend",
+    "setup": "node scripts/setup.mjs",
+    "content:validate": "npm run validate --workspace @kalba/content"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2"
+  }
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Kalba">
+  <rect width="64" height="64" rx="14" fill="#0d1712" />
+  <g>
+    <rect x="12" y="16" width="40" height="10.67" fill="#fdb913" />
+    <rect x="12" y="26.67" width="40" height="10.67" fill="#006a44" />
+    <rect x="12" y="37.34" width="40" height="10.66" fill="#c1272d" />
+  </g>
+  <rect x="12" y="16" width="40" height="32" fill="none" stroke="#4ade80" stroke-width="2.5" rx="2" />
+</svg>

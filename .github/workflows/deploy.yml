@@ -1,0 +1,119 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only one deploy at a time; let a newer commit finish rather than cancelling it
+# halfway through publishing.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ── The app itself: a static PWA on GitHub Pages ──────────────────────────
+  deploy-frontend:
+    name: Deploy the app to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the content package
+        run: npm run build --workspace @kalba/content
+
+      - name: Build the app
+        working-directory: frontend
+        env:
+          # Served from the root of a custom domain (learnlt.verko.lt), so the
+          # bundle, the service-worker scope and the router basename all sit at
+          # "/". If you ever drop the custom domain and serve from
+          # <user>.github.io/<repo>/, change this to /${{ github.event.repository.name }}/.
+          VITE_BASE: /
+          # Where the app should call the API. Set API_URL as a repository
+          # variable (Settings → Secrets and variables → Actions → Variables).
+          # Until it is set the app builds fine but cannot sign anyone in.
+          VITE_API_URL: ${{ vars.API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        run: npm run build
+
+      - name: Add a SPA fallback
+        # Pages has no rewrite rules, so a deep link like /lesson/garsai would
+        # 404. Serving index.html as the 404 page hands the route to the router.
+        run: cp frontend/dist/index.html frontend/dist/404.html
+
+      - name: Add .nojekyll
+        # Without this, Pages strips files and folders beginning with an
+        # underscore, which breaks some asset names.
+        run: touch frontend/dist/.nojekyll
+
+      - name: Add CNAME
+        # The custom domain is also stored in the repository's Pages settings,
+        # but an Actions deployment replaces the whole site on every run — so
+        # the file has to be part of the artifact or the domain is dropped.
+        run: echo 'learnlt.verko.lt' > frontend/dist/CNAME
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ── The API: build and publish a container image ──────────────────────────
+  # Pushes to GitHub Container Registry. Point your host (Fly.io, Render,
+  # Railway, a VPS…) at the published image, or swap this job for your
+  # provider's own deploy action.
+  publish-api:
+    name: Publish the API image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-api
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

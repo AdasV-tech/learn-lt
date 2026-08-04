@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kalba-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kalba
+      POSTGRES_PASSWORD: kalba
+      POSTGRES_DB: kalba
+    ports:
+      - '5432:5432'
+    volumes:
+      - kalba-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kalba -d kalba']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Optional web UI for poking at the database: http://localhost:8080
+  # Start with:  docker compose --profile tools up -d
+  adminer:
+    image: adminer:4
+    container_name: kalba-adminer
+    restart: unless-stopped
+    profiles: ['tools']
+    depends_on:
+      - postgres
+    ports:
+      - '8080:8080'
+
+volumes:
+  kalba-pgdata:
